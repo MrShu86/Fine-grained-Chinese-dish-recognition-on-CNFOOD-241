@@ -17,7 +17,6 @@ The project studies closed-set Chinese dish recognition on CNFOOD-241 using RegN
 | `eval/` | Evaluation and statistical analysis scripts |
 | `results/` | Curated result files used in the manuscript revision and response letter |
 | `artifacts/` | Large local artifacts and raw training logs |
-| `paper/` | Manuscript, reviewer comments, response letter, and revision planning files |
 | `docs/` | Human-readable reproducibility and reviewer-evidence guides |
 
 ## Main Revised Results
