@@ -51,7 +51,10 @@ class BalancedPKSampler(Sampler[int]):
     """
 
     def __init__(self, labels: Union[np.ndarray, list], P: int, K: int, seed: int = 42):
-        super().__init__()
+        try:
+            super().__init__(None)
+        except TypeError:
+            super().__init__()
         self.P = int(P)
         self.K = int(K)
         assert self.P > 0 and self.K > 0, "P 和 K 必须为正整数"
@@ -218,5 +221,7 @@ def build_loaders(cfg: Dict[str, Any]):
         drop_last=False,
         **common_kwargs,
     )
+    dl_tr._codex_cfg = cfg
+    dl_va._codex_cfg = cfg
 
     return ds_tr, ds_va, dl_tr, dl_va

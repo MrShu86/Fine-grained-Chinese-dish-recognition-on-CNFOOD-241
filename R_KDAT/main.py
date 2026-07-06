@@ -7,6 +7,8 @@ Main (RegNetY-32GF + ArcFace 头 + Triplet(可选) + 在线知识蒸馏)
 - 训练/验证：utils.train_loop.{train_one_epoch, validate}
 - TensorBoard 记录；保存 best.pt（以 val top1）
 """
+import argparse
+import copy
 import os, time, sys
 import torch
 import torch.nn as nn
@@ -32,6 +34,109 @@ def set_seed(seed=42):
     import random, numpy as np
     random.seed(seed); np.random.seed(seed)
     torch.manual_seed(seed); torch.cuda.manual_seed_all(seed)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train R_KDAT full model.")
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--out-dir", type=str, default=None)
+    parser.add_argument("--resume-ckpt", type=str, default=None)
+    parser.add_argument("--teacher-ckpt", type=str, default=None)
+    parser.add_argument("--train-dir", type=str, default=None)
+    parser.add_argument("--val-dir", type=str, default=None)
+    parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--num-workers", type=int, default=None)
+    parser.add_argument("--pk-p", type=int, default=None,
+                        help="Override Balanced P-K sampler P for full model.")
+    parser.add_argument("--pk-k", type=int, default=None,
+                        help="Override Balanced P-K sampler K for full model.")
+    parser.add_argument("--amp-dtype", choices=["bf16", "fp16", "off"], default=None)
+    parser.add_argument("--channels-last", dest="channels_last", action="store_true", default=None)
+    parser.add_argument("--no-channels-last", dest="channels_last", action="store_false")
+    parser.add_argument("--fused-adamw", dest="fused_adamw", action="store_true", default=None)
+    parser.add_argument("--no-fused-adamw", dest="fused_adamw", action="store_false")
+    parser.add_argument("--compile", dest="compile_model", action="store_true", default=None)
+    parser.add_argument("--no-compile", dest="compile_model", action="store_false")
+    parser.add_argument("--kd-use", dest="kd_use", action="store_true", default=None)
+    parser.add_argument("--no-kd", dest="kd_use", action="store_false")
+    parser.add_argument("--arcface", dest="arcface", action="store_true", default=None)
+    parser.add_argument("--no-arcface", dest="arcface", action="store_false")
+    parser.add_argument("--triplet", dest="triplet", action="store_true", default=None)
+    parser.add_argument("--no-triplet", dest="triplet", action="store_false")
+    parser.add_argument("--strong-aug", dest="strong_aug", action="store_true", default=None)
+    parser.add_argument("--no-strong-aug", dest="strong_aug", action="store_false",
+                        help="Disable MixUp, CutMix, and Random Erasing for core discriminative ablations.")
+    parser.add_argument("--no-tensorboard", action="store_true")
+    parser.add_argument("--deterministic", action="store_true",
+                        help="Use deterministic CuDNN settings for repeatability.")
+    return parser.parse_args()
+
+
+def apply_overrides(cfg, args):
+    cfg = copy.deepcopy(cfg)
+    mapping = {
+        "seed": args.seed,
+        "out_dir": args.out_dir,
+        "resume_ckpt": args.resume_ckpt,
+        "train_dir": args.train_dir,
+        "val_dir": args.val_dir,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "num_workers": args.num_workers,
+        "amp_dtype": args.amp_dtype,
+        "channels_last": args.channels_last,
+        "fused_adamw": args.fused_adamw,
+    }
+    for key, value in mapping.items():
+        if value is not None:
+            cfg[key] = value
+    if args.teacher_ckpt is not None:
+        cfg.setdefault("kd", {})["teacher_ckpt"] = args.teacher_ckpt
+    if args.kd_use is not None:
+        cfg.setdefault("kd", {})["use"] = args.kd_use
+    if args.arcface is not None:
+        cfg.setdefault("head", {})["arcface"] = args.arcface
+    if args.triplet is not None:
+        cfg.setdefault("metric", {})["use_triplet"] = args.triplet
+    if args.strong_aug is not None:
+        if args.strong_aug:
+            cfg["mixup_alpha"] = CONFIG.get("mixup_alpha", 0.2)
+            cfg["cutmix_alpha"] = CONFIG.get("cutmix_alpha", 1.0)
+            cfg["random_erasing"] = CONFIG.get("random_erasing", True)
+        else:
+            cfg["mixup_alpha"] = 0.0
+            cfg["cutmix_alpha"] = 0.0
+            cfg["random_erasing"] = False
+    if args.pk_p is not None or args.pk_k is not None:
+        sampler = cfg.get("sampler")
+        if not isinstance(sampler, dict):
+            sampler = {"type": "balanced_pk"}
+        sampler["type"] = "balanced_pk"
+        if args.pk_p is not None:
+            sampler["P"] = args.pk_p
+        if args.pk_k is not None:
+            sampler["K"] = args.pk_k
+        cfg["sampler"] = sampler
+    if args.no_tensorboard:
+        cfg["use_tensorboard"] = False
+    if args.compile_model is not None:
+        cfg["compile"] = args.compile_model
+    return cfg
+
+
+def make_optimizer(model, cfg, use_cuda):
+    kwargs = dict(lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    if cfg.get("channels_last", False) and cfg.get("fused_adamw", False):
+        print("[WARN] fused AdamW is disabled because channels_last can create non-standard parameter layouts.")
+        print("[WARN] Use regular AdamW for A100 stability.")
+        return optim.AdamW(model.parameters(), **kwargs)
+    if use_cuda and cfg.get("fused_adamw", False):
+        try:
+            return optim.AdamW(model.parameters(), fused=True, **kwargs)
+        except TypeError:
+            print("[WARN] fused AdamW is not available in this PyTorch; fallback to AdamW.")
+    return optim.AdamW(model.parameters(), **kwargs)
 
 
 # ------------------------ Teacher 加载辅助函数 ------------------------
@@ -135,6 +240,8 @@ def _build_teacher_if_needed(cfg, num_classes, device):
     # Teacher 一律用“普通线性头”（use_arcface=False）
     teacher = build_model(num_classes=num_classes, pretrained=True,
                           use_arcface=False).to(device)
+    if cfg.get("channels_last", False):
+        teacher = teacher.to(memory_format=torch.channels_last)
 
     # 如需多卡
     if kd_cfg.get("dp_teacher", False) and torch.cuda.device_count() > 1:
@@ -171,9 +278,12 @@ def _build_teacher_if_needed(cfg, num_classes, device):
 
 
 def main():
-    cfg = CONFIG
+    args = parse_args()
+    cfg = apply_overrides(CONFIG, args)
     print("CONFIG OK.")
     set_seed(cfg.get("seed", 42))
+    print("SEED =", cfg.get("seed", 42))
+    print("OUT_DIR =", cfg.get("out_dir"))
     print("CWD =", os.getcwd())
     print("PYTHONPATH head =", sys.path[:3])
     print("CONFIG keys =", list(cfg.keys())[:5])
@@ -181,7 +291,16 @@ def main():
     # ==== 设备 ====
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    cudnn.benchmark = True
+    cudnn.benchmark = not args.deterministic
+    if use_cuda:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+    if args.deterministic:
+        cudnn.deterministic = True
+        try:
+            torch.use_deterministic_algorithms(True, warn_only=True)
+        except Exception:
+            pass
     if use_cuda:
         try:
             torch.set_float32_matmul_precision('high')
@@ -204,6 +323,15 @@ def main():
         arc_s=h.get("s", 30.0),
         arc_m=h.get("m", 0.35),
     ).to(device)
+    if cfg.get("channels_last", False):
+        model = model.to(memory_format=torch.channels_last)
+        print("[A100] channels_last enabled.")
+    if cfg.get("compile", False):
+        try:
+            model = torch.compile(model)
+            print("[A100] torch.compile enabled.")
+        except Exception as exc:
+            print(f"[WARN] torch.compile failed, continue without compile: {exc}")
 
     if cfg.get("dataparallel", False) and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
@@ -212,11 +340,13 @@ def main():
     teacher = _build_teacher_if_needed(cfg, num_classes, device)
 
     # ==== 优化器 / 损失 ====
-    optimizer = optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    optimizer = make_optimizer(model, cfg, use_cuda)
     loss_fn = build_loss_fn(cfg)   # 基础 CE/Focal；KD/Triplet 在 train_loop 内部处理
 
     # ==== AMP ====
-    scaler = GradScaler(enabled=use_cuda) if use_cuda else None
+    amp_dtype = str(cfg.get("amp_dtype", "bf16")).lower()
+    scaler = GradScaler(enabled=(use_cuda and amp_dtype == "fp16")) if use_cuda else None
+    print(f"[A100] amp_dtype={amp_dtype}  GradScaler={'on' if scaler is not None and scaler.is_enabled() else 'off'}")
 
     # ==== 日志 ====
     os.makedirs(cfg["out_dir"], exist_ok=True)

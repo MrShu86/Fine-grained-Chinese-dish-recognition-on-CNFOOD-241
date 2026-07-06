@@ -41,6 +41,10 @@ CONFIG = {
     "num_workers": 8,
     "prefetch_factor": 2,
     "pin_memory": True,
+    "amp_dtype": "bf16",             # A100 recommended: "bf16"; alternatives: "fp16", "off"
+    "channels_last": True,
+    "fused_adamw": True,
+    "compile": False,
     "dataparallel": True,           # 多卡可设 True（nn.DataParallel）
     #ArcFace（m=0.35）+ Triplet(0.2)
     # 采样（建议配合 Triplet）

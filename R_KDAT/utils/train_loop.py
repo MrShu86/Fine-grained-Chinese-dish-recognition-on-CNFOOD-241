@@ -7,10 +7,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-try:
-    from torch.cuda.amp import autocast
-except Exception:
-    from torch.amp.autocast_mode import autocast
+def _amp_dtype(cfg):
+    name = str(cfg.get("amp_dtype", "bf16")).lower()
+    if name == "bf16":
+        return torch.bfloat16
+    if name == "fp16":
+        return torch.float16
+    return None
+
+
+def _autocast_context(device: torch.device, cfg: dict):
+    dtype = _amp_dtype(cfg)
+    enabled = (device.type == "cuda") and (dtype is not None)
+    return torch.amp.autocast(device_type="cuda", dtype=dtype, enabled=enabled)
 
 # 进度条：若 tqdm 不可用则优雅退化为普通迭代
 try:
@@ -163,7 +172,7 @@ def train_one_epoch(model: nn.Module,
             mixup_alpha = mixup_alpha_base * factor
             cutmix_alpha = cutmix_alpha_base * factor
 
-    use_amp = (device.type == "cuda") and (scaler is not None)
+    use_scaler = (device.type == "cuda") and (scaler is not None) and scaler.is_enabled()
     num_classes = int(cfg["num_classes"])
 
     loss_m, top1_m, top5_m = 0.0, 0.0, 0.0
@@ -180,6 +189,8 @@ def train_one_epoch(model: nn.Module,
 
     for images, targets in iterator:
         images = images.to(device, non_blocking=True)
+        if cfg.get("channels_last", False):
+            images = images.contiguous(memory_format=torch.channels_last)
         targets = targets.to(device, non_blocking=True)
 
         # MixUp/CutMix（与 KD 协同）
@@ -187,7 +198,7 @@ def train_one_epoch(model: nn.Module,
             images, targets, num_classes, mixup_alpha, cutmix_alpha, device
         )
 
-        with autocast(enabled=use_amp):
+        with _autocast_context(device, cfg):
             # ------- 前向 -------
             if targets_soft is None:
                 # 硬标签批次：ArcFace 带 margin（labels=targets）
@@ -220,7 +231,7 @@ def train_one_epoch(model: nn.Module,
                 loss = loss + triplet_weight * trip
 
         # ------- 反传/更新 -------
-        if use_amp:
+        if use_scaler:
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -267,13 +278,13 @@ def validate(model: nn.Module,
              max_batches: int = 0) -> Tuple[float, float, float]:
 
     model.eval()
-    use_amp = (device.type == "cuda")
+    cfg = getattr(dataloader, "_codex_cfg", {}) if hasattr(dataloader, "_codex_cfg") else {}
 
     loss_m, top1_m, top5_m = 0.0, 0.0, 0.0
     n_batches = 0
 
     iterator = _tqdm_wrapper(
-        dataloader if max_batches == 0 else list(dataloader)[:max_batches],
+        dataloader,
         total=(len(dataloader) if max_batches == 0 else max_batches),
         desc="Validate",
         ncols=0,
@@ -285,9 +296,11 @@ def validate(model: nn.Module,
             break
         images, targets = batch
         images = images.to(device, non_blocking=True)
+        if cfg.get("channels_last", False):
+            images = images.contiguous(memory_format=torch.channels_last)
         targets = targets.to(device, non_blocking=True)
 
-        with autocast(enabled=use_amp):
+        with _autocast_context(device, cfg):
             logits = model(images)  # ArcFace 在 labels=None 时自动退化为普通 logits
             loss = F.cross_entropy(logits, targets)
 

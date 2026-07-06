@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Training artifacts
+*.pt
+*.pth
+*.ckpt
+events.out.tfevents*
+runs/
+exp_*/
+artifacts/internal_validation_excluded/
+
+# Local/editor files
+~$*
+.DS_Store
+Thumbs.db
+
+# Dataset folders should be provided externally
+CNFOOD-241/
+train600x600/
+val600x600/
