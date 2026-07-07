@@ -1,46 +1,50 @@
 # Model Weights
 
-Large model weights should not be committed directly to git. For public release, upload them to GitHub Releases or another stable public storage location and link them from this file.
+Pretrained model checkpoints are distributed through GitHub Releases:
 
-## Local Files
+https://github.com/MrShu86/Fine-grained-Chinese-dish-recognition-on-CNFOOD-241/releases/tag/revision-model-weights-v1
 
-The following local weight files were moved here during repository cleanup:
+The repository stores code and evaluation outputs directly, while large `.pt` checkpoint files are provided as release assets.
 
-| Local file | Notes |
-|---|---|
-| `best.pt` | Legacy local checkpoint; verify exact role before public release |
-| `best (3).pt` | Legacy local checkpoint; verify exact role before public release |
+## Released Checkpoints
 
-## Weights That Should Be Released
-
-To fully support the revised manuscript and response to reviewers, the public release should include:
-
-1. Baseline RegNetY-32GF five-seed repeated-run checkpoints.
-2. Full model five-seed repeated-run checkpoints.
-3. ViT-B/16 checkpoint and evaluation outputs.
-4. Swin-B checkpoint and evaluation outputs.
-5. Added pairwise/core ablation checkpoints and evaluation outputs.
-
-Recommended public naming:
+The release includes checkpoints for the following experiments:
 
 ```text
+Baseline RegNetY-32GF repeated runs:
 baseline_seed_1.pt
 baseline_seed_25.pt
 baseline_seed_42.pt
 baseline_seed_50.pt
 baseline_seed_100.pt
+
+Full discriminative model repeated runs:
 full_seed_1.pt
 full_seed_25.pt
 full_seed_42.pt
 full_seed_50.pt
 full_seed_100.pt
+
+Transformer baselines:
 vit_b16_seed_42.pt
 swin_b_seed_42.pt
+
+Additional ablations:
 ablation_kd_mbc_seed_42.pt
 ablation_kd_er_seed_42.pt
 ablation_mbc_er_seed_42.pt
 ablation_core_seed_42.pt
 ```
 
-After uploading, add the download URLs and checksums here.
+## Evaluation Outputs
 
+The corresponding evaluation outputs are available in:
+
+```text
+results/repeated_runs/
+results/significance/
+results/transformer_baselines/
+results/ablation/
+```
+
+Use the scripts in `eval/` to re-evaluate checkpoints or recompute the statistical analyses.

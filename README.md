@@ -1,10 +1,10 @@
 # Fine-grained Chinese Dish Recognition on CNFOOD-241
 
-This repository contains the code, evaluation outputs, and revision evidence for the manuscript:
+This repository contains the training code, evaluation scripts, pretrained model weights, and experimental results for:
 
 **Fine-grained Chinese dish recognition on CNFOOD-241: A discriminative learning approach for improving category-level discrimination**
 
-The project studies closed-set Chinese dish recognition on CNFOOD-241 using RegNetY-32GF as the main backbone. The revised repository is organized to support both reproducibility and the response to reviewers.
+The project studies closed-set Chinese dish recognition on CNFOOD-241 using RegNetY-32GF as the main backbone. It includes a baseline model, the proposed discriminative training framework, repeated-run evaluation results, statistical analysis scripts, Transformer baselines, and additional ablation experiments.
 
 ## Repository Layout
 
@@ -15,9 +15,10 @@ The project studies closed-set Chinese dish recognition on CNFOOD-241 using RegN
 | `ViT-B16/` | ViT-B/16 Transformer baseline code |
 | `Swin-B/` | Swin-B Transformer baseline code |
 | `eval/` | Evaluation and statistical analysis scripts |
-| `results/` | Curated result files used in the manuscript revision and response letter |
-| `artifacts/` | Large local artifacts and raw training logs |
-| `docs/` | Human-readable reproducibility and reviewer-evidence guides |
+| `results/` | Evaluation outputs, repeated-run statistics, significance tests, Transformer baseline results, and ablation summaries |
+| `artifacts/ablation_logs/` | Raw training logs for the added ablation experiments |
+| `artifacts/weights/` | Instructions and public release link for pretrained model weights |
+| `docs/` | Reproducibility and statistical-analysis documentation |
 
 ## Main Revised Results
 
@@ -63,6 +64,14 @@ See `results/transformer_baselines/`.
 
 See `results/ablation/` and `artifacts/ablation_logs/`.
 
+## Pretrained Weights
+
+Pretrained checkpoints are available from GitHub Releases:
+
+https://github.com/MrShu86/Fine-grained-Chinese-dish-recognition-on-CNFOOD-241/releases/tag/revision-model-weights-v1
+
+The release contains the baseline repeated-run checkpoints, full-model repeated-run checkpoints, Transformer baseline checkpoints, and added ablation checkpoints. See `artifacts/weights/README.md` for details.
+
 ## Data
 
 The experiments use the public CNFOOD-241 dataset. The dataset itself is not redistributed in this repository. Set the training and validation paths when running the scripts.
@@ -79,12 +88,11 @@ Expected server layout used in the experiments:
 Start with:
 
 - `docs/REPRODUCIBILITY.md`
-- `docs/REVIEW_RESPONSE_EVIDENCE_MAP.md`
 - `docs/STATISTICAL_ANALYSIS.md`
 - `artifacts/weights/README.md`
 
-These files explain how the code, weights, predictions, statistical tests, and reviewer-response claims connect to each other.
+These files explain how to run the code, evaluate checkpoints, and reproduce the reported statistical analyses.
 
 ## Notes on Large Files
 
-Model weights are large and should be shared through GitHub Releases or another stable public download link. Local weights are stored under `artifacts/weights/` but should not be committed directly to git.
+Model weights are distributed through GitHub Releases rather than committed directly to the repository.
