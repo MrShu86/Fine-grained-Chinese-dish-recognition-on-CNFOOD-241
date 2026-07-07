@@ -1,0 +1,28 @@
+{
+  "n_samples": 20943,
+  "n_classes": 241,
+  "mcnemar_exact_top1": {
+    "b01": 693,
+    "b10": 567,
+    "n_discordant": 1260,
+    "p_value": 0.0004248584843122488
+  },
+  "mcnemar_chi_square_cc_top1": {
+    "chi2_cc": 12.40079365079365,
+    "p_value_cc": 0.00042915141322033486
+  },
+  "wilcoxon_delta_f1_greater_than_zero": {
+    "statistic": 17988.5,
+    "p_value_greater_than_zero": 7.739701570607411e-08
+  },
+  "delta_f1_summary": {
+    "improved_classes": 148,
+    "degraded_classes": 78,
+    "unchanged_classes": 15,
+    "mean": 0.010383673018632947,
+    "median": 0.006525969166292334,
+    "std": 0.03272594466525073,
+    "q1": -0.00528846153846152,
+    "q3": 0.020408163265306145
+  }
+}

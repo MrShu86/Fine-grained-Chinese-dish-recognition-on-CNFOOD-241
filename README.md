@@ -1,4 +1,4 @@
-# Fine-grained Chinese Dish Recognition on CNFOOD-241
+﻿# Fine-grained Chinese Dish Recognition on CNFOOD-241
 
 This repository contains the training code, evaluation scripts, pretrained model weights, and experimental results for:
 
@@ -27,7 +27,7 @@ The project studies closed-set Chinese dish recognition on CNFOOD-241 using RegN
 | Method | Top-1 mean +/- SD | Top-5 mean +/- SD | Macro-F1 mean +/- SD | 95% CI | Seeds |
 |---|---:|---:|---:|---:|---|
 | Baseline | 83.72 +/- 0.30 | 97.64 +/- 0.11 | 83.11 +/- 0.31 | [83.35, 84.09] | 1, 25, 42, 50, 100 |
-| Full model | 84.36 +/- 0.26 | 97.65 +/- 0.10 | 83.38 +/- 0.51 | [84.04, 84.67] | 1, 25, 42, 50, 100 |
+| Full model | 84.37 +/- 0.29 | 97.66 +/- 0.11 | 83.41 +/- 0.57 | [84.02, 84.73] | 1, 25, 42, 50, 100 |
 
 See `results/repeated_runs/`.
 
@@ -35,12 +35,12 @@ See `results/repeated_runs/`.
 
 | Analysis | Result |
 |---|---:|
-| McNemar's exact test | b01/b10 = 4106/3441, p = 2.039e-14 |
-| Paired bootstrap Delta Top-1 | 0.635 pp, 95% CI [0.476, 0.796] |
-| Paired bootstrap Delta Top-5 | 0.013 pp, 95% CI [-0.054, 0.082] |
-| Paired bootstrap Delta Macro-F1 | 0.249 pp, 95% CI [0.018, 0.498] |
-| Paired bootstrap Delta Weighted-F1 | 0.580 pp, 95% CI [0.421, 0.741] |
-| Wilcoxon signed-rank for class-wise Delta F1 > 0 | p = 0.041207 |
+| McNemar's exact test | b01/b10 = 4112/3430, p = 4.266e-15 |
+| Paired bootstrap Delta Top-1 | 0.651 pp, 95% CI [0.491, 0.817] |
+| Paired bootstrap Delta Top-5 | 0.022 pp, 95% CI [-0.047, 0.091] |
+| Paired bootstrap Delta Macro-F1 | 0.285 pp, 95% CI [0.049, 0.540] |
+| Paired bootstrap Delta Weighted-F1 | 0.597 pp, 95% CI [0.436, 0.766] |
+| Wilcoxon signed-rank for class-wise Delta F1 > 0 | p = 0.017803 |
 
 See `results/significance/`.
 

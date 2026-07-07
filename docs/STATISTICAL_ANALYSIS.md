@@ -1,4 +1,4 @@
-# Statistical Analysis and Evaluation Code
+﻿# Statistical Analysis and Evaluation Code
 
 This document explains how the significance tests, confidence intervals, and Wilcoxon signed-rank test in the revised manuscript were computed.
 
@@ -64,9 +64,9 @@ p = BinomialTest(min(b01, b10), n, p = 0.5, two-sided)
 In the revised five-seed analysis:
 
 ```text
-b01 = 4106
-b10 = 3441
-p = 2.039e-14
+b01 = 4112
+b10 = 3430
+p = 4.266e-15
 ```
 
 ### Paired Bootstrap 95% Confidence Intervals
@@ -90,10 +90,10 @@ In the revised five-seed analysis:
 
 | Metric | Delta | 95% CI |
 |---|---:|---:|
-| Top-1 | 0.635 pp | [0.476, 0.796] |
-| Top-5 | 0.013 pp | [-0.054, 0.082] |
-| Macro-F1 | 0.249 pp | [0.018, 0.498] |
-| Weighted-F1 | 0.580 pp | [0.421, 0.741] |
+| Top-1 | 0.651 pp | [0.491, 0.817] |
+| Top-5 | 0.022 pp | [-0.047, 0.091] |
+| Macro-F1 | 0.285 pp | [0.049, 0.540] |
+| Weighted-F1 | 0.597 pp | [0.436, 0.766] |
 
 ### Wilcoxon Signed-rank Test for Class-wise Delta F1
 
@@ -113,9 +113,9 @@ H1: median class-wise Delta F1 > 0
 In the revised five-seed analysis:
 
 ```text
-mean class Delta F1 = 0.276 pp
-positive / negative / zero classes = 127 / 113 / 1
-one-sided p = 0.041207
+mean class Delta F1 = 0.309 pp
+positive / negative / zero classes = 129 / 111 / 1
+one-sided p = 0.017803
 ```
 
 ## Original Single-run Reviewer Statistics
